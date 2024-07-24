@@ -17,46 +17,131 @@ class Result
     {
         var pLength = p.Length;
         var vLength = v.Length;
-        var res = new List<int>();
+
+        var result = new List<int>();
 
         var combined1 = v + " " + p;
         var combined2 = new string(v.Reverse().ToArray()) + " " + new string(p.Reverse().ToArray());
 
-        var r1 = Rid(combined1);
-        var r2 = Rid(combined2);
+
+        var forwardLengths = ComputePalindromicLengths(combined1);
+        var reverseLengths = ComputePalindromicLengths(combined2);
 
         for (var i = 0; i <= pLength - vLength; i++)
         {
-            if (r1[vLength + 1 + i] == vLength || r1[vLength + i + 1] + r2[pLength + 1 - i] + 1 >= vLength)
-                res.Add(i);
+                                                                                                            //  bu + 1 kaç fire verilebileceğini belirtiyor
+            if (forwardLengths[vLength + 1 + i] == vLength || forwardLengths[vLength + i + 1] + reverseLengths[pLength + 1 - i] + 1 >= vLength)
+                result.Add(i);
         }
 
-        if (res.Count > 0)
-            Console.WriteLine(string.Join(" ", res));
+        if (result.Count > 0)
+            Console.WriteLine(string.Join(" ", result));
         else
             Console.WriteLine("No Match!");
     }
 
-    private static int[] Rid(string s)
+    private static int[] ComputePalindromicLengths(string text)
     {
-        var n = s.Length;
-        var a = 0;
-        var b = 0;
-        var r = new int[n];
-        for (var i = 1; i < n; i++)
+        var length = text.Length;
+        var leftBoundary = 0;
+        var rightBoundary = 0;
+        var palindromicLengths = new int[length];
+        for (var i = 1; i < length; i++)
         {
-            if (r[i - a] < b - i + 1)
-                r[i] = r[i - a];
+            if (palindromicLengths[i - leftBoundary] < rightBoundary - i + 1)
+                palindromicLengths[i] = palindromicLengths[i - leftBoundary];
             else
             {
-                a = i;
-                b = Math.Max(i, b);
-                while (b < n && s[b - a] == s[b])
-                    b++;
-                r[i] = b - a;
-                b--;
+                leftBoundary = i;
+                rightBoundary = Math.Max(i, rightBoundary);
+                while (rightBoundary < length && text[rightBoundary - leftBoundary] == text[rightBoundary])
+                    rightBoundary++;
+                palindromicLengths[i] = rightBoundary - leftBoundary;
+                rightBoundary--;
             }
         }
-        return r;
+        return palindromicLengths;
+    }
+}
+
+class RabinKarp
+{
+    static int prime = 101;
+
+    public static List<int> Search(string text, string pattern)
+    {
+        var m = pattern.Length;
+        var n = text.Length;
+        var patternHash = CreateHash(pattern, m - 1);
+        var textHash = CreateHash(text, m - 1);
+        var result = new List<int>();
+
+        for (var i = 0; i <= n - m; i++)
+        {
+            if (IsOneMismatch(pattern, text, i))
+            {
+                result.Add(i);
+            }
+            if (i < n - m)
+            {
+                textHash = RecalculateHash(text, i, i + m, textHash, m);
+            }
+        }
+        return result;
+    }
+
+    static long CreateHash(string str, int end)
+    {
+        long hash = 0;
+        for (var i = 0; i <= end; i++)
+        {
+            hash += str[i] * (long)Math.Pow(prime, i);
+        }
+        return hash;
+    }
+
+    static long RecalculateHash(string str, int oldIndex, int newIndex, long oldHash, int patternLen)
+    {
+        var newHash = oldHash - str[oldIndex];
+        newHash /= prime;
+        newHash += str[newIndex] * (long)Math.Pow(prime, patternLen - 1);
+        return newHash;
+    }
+
+    // checks with 1 mismatch (line 82)
+    static bool IsOneMismatch(string pattern, string text, int startIndex)
+    {
+        var mismatchCount = 0;
+        for (var j = 0; j < pattern.Length; j++)
+        {
+            if (text[startIndex + j] == pattern[j]) continue;
+            
+            mismatchCount++;
+            
+            if (mismatchCount > 1)
+            {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    // checks full pattern match
+    static bool CheckEqual(string str1, int start1, int end1, string str2, int start2, int end2)
+    {
+        if (end1 - start1 != end2 - start2)
+        {
+            return false;
+        }
+        while (start1 <= end1 && start2 <= end2)
+        {
+            if (str1[start1] != str2[start2])
+            {
+                return false;
+            }
+            start1++;
+            start2++;
+        }
+        return true;
     }
 }
